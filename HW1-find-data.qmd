@@ -1,0 +1,19 @@
+---
+title: "Preliminary data exploration"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(here)
+
+pp_interactions <- read_csv(here("data", "pp-interactions.csv")) |>
+    clean_names()
+flower_surveys <- read_csv(here("data", "flower-surveys.csv")) |>
+    clean_names()
+```
+
+
