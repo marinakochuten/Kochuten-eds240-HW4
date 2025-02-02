@@ -1,0 +1,254 @@
+---
+title: "Data exploration"
+author: Marina Kochuten
+date: 2-4-25
+format: html
+messages: false
+warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+## About
+
+In this workflow, I am exploring the [plant pollinator interaction data at HJ Andrews Experimental Forest from 2011 to 2021](https://portal.edirepository.org/nis/metadataviewer?packageid=knb-lter-and.5216.8). At this point, I am working to familiarize myself with the data, do any necessary cleaning and wrangling, and explore potential trends through a handful of preliminary visualizations.
+
+## Setup
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(janitor)
+library(here)
+
+# Read in pollinator data
+pp_interactions <- read_csv(here("data", "pp-interactions.csv")) |>
+    clean_names()
+
+# Not sure yet if I will use this data set, but this is where flower abundance data is kept
+flower_surveys <- read_csv(here("data", "flower-surveys.csv")) |>
+    clean_names()
+```
+
+## Exploration
+
+```{r}
+# How many observations indicate pollination interactions?
+print(paste("Number of pollinator interactions incidents in df:", count(pp_interactions, ppi_status)))
+# Could explore weather conditions for 0 or 1? Or even, how interaction incidences change over time?
+
+print(count(pp_interactions, year))
+# Missing data in 2019 and 2020, limited counts in 2021.
+# I think I should filter to 2011-2018
+```
+
+```{r}
+ggplot(pp_interactions, aes(x = sampledate, y = ppi_status)) +
+    geom_point()
+```
+
+I'm curious to see how number of pollinator interactions vary under different weather conditions. My data contains the columns wind, clouds, and temp. Let's take a look at those:
+```{r}
+#| fig-cap: "There are many more pollinator interactions observed when it is still (ST) rather than breezy (BR)"
+
+# Wind vs # of pollinator interactions
+pp_interactions |>
+    group_by(wind) |>
+    summarise(interactions = sum(no_int, na.rm=TRUE)) |>
+    ungroup() |>
+    ggplot(aes(x = wind, y = interactions)) +
+    geom_col() +
+    labs(title = "Wind vs # pollinator interactions")
+```
+
+```{r}
+#| fig-cap: "As expected, there are many more pollinator interactions observed when it is sunny, and interactions decrease as clouds increase"
+# Clouds vs # of pollinator interactions
+pp_interactions |>
+    group_by(clouds) |>
+    summarise(interactions = sum(no_int, na.rm=TRUE)) |>
+    ungroup() |>
+    mutate(clouds = fct_reorder(clouds, interactions)) |>
+    ggplot(aes(x = clouds, y = interactions)) +
+    geom_col() +
+    scale_x_discrete(labels = c("Sunny", "Passing Clouds", "Shade", "Cloudy")) +
+    coord_flip()
+```
+
+```{r}
+#| fig-cap: "Seems like there is a sweet spot for pollinators around 25 degrees. I wonder if this is because of average temp when the most flowers are blooming?"
+# Temp vs # of pollinator interactions
+pp_interactions |>
+    group_by(temp) |>
+    summarise(interactions = sum(no_int, na.rm=TRUE)) |>
+    ungroup() |>
+    ggplot(aes(x = temp, y = interactions)) +
+    geom_point()
+```
+
+
+Now, I'd like to explore potential trends regarding pollinator type. First, I want to group the specific pollinator species into generic types:
+```{r}
+# Add a column with pollinator generic type
+pp_interactions <- pp_interactions |>
+    mutate(pol_type = case_when(str_detect(vissp_type, "beetle") ~ "Beetle",
+                                str_detect(vissp_type, "fly") ~ "Fly",
+                                str_detect(vissp_type, "wasp") ~ "Wasp",
+                                str_detect(vissp_type, "butterfly") ~ "Butterfly",
+                                str_detect(vissp_type, "grasshopper") ~ "Grasshopper",
+                                str_detect(vissp_type, "moth") ~ "Moth",
+                                str_detect(vissp_type, "hummingbird") ~ "Hummingbird",
+                                str_detect(vissp_type, "bee") ~ "Bee",
+                                str_detect(vissp_type, "ant") ~ "Ant",
+                                str_detect(vissp_type, "spider") ~ "Spider",
+                                .default = "other"))
+
+```
+
+Now I can poke around with potential pollinator type trends
+
+```{r}
+#| fig-cap: "There is not any clearly visible trend regarding number of bee interactions over the 2018 season"
+# Number of bee interactions over the 2018 field season
+pp_interactions |>
+    filter(year == 2018) |>
+    filter(pol_type == "Bee") |>
+    group_by(pol_type, sampledate) |>
+    summarise(no_int = mean(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = sampledate, y = no_int)) +
+    labs(title = "Number of bee interactions over the 2018 field season") +
+    geom_point()
+```
+
+```{r}
+#| fig-cap: "Number of bees observed is cyclical, with a huge year in 2018. Important to note that in 2021 only visitations by bees were recorded rather than visitations by all pollinators, so this year was removed."
+# Average number of bee interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Bee") |>
+    group_by(year) |>
+    summarise(total_bee = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_bee)) +
+    geom_line() +
+    labs(title = "Number of bee interactions") 
+```
+
+```{r}
+# Average number of wasp interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Wasp") |>
+    group_by(year) |>
+    summarise(total_wasp = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_wasp)) +
+    geom_line() +
+    labs(title = "Number of Wasp interactions") 
+```
+
+```{r}
+# Average number of ant interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Ant") |>
+    group_by(year) |>
+    summarise(total_ant = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_ant)) +
+    geom_line() +
+    labs(title = "Number of Ant interactions") 
+```
+
+```{r}
+# Average number of fly interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Fly") |>
+    group_by(year) |>
+    summarise(total_fly = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_fly)) +
+    geom_line() +
+    labs(title = "Number of Fly interactions") 
+```
+
+```{r}
+# Average number of beetle interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Beetle") |>
+    group_by(year) |>
+    summarise(total_beetle = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_beetle)) +
+    geom_line() +
+    labs(title = "Number of Beetle interactions") 
+```
+
+```{r}
+# Average number of grasshopper interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Grasshopper") |>
+    group_by(year) |>
+    summarise(total_gh = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_gh)) +
+    geom_line() +
+    labs(title = "Number of Grasshopper interactions") 
+```
+
+```{r}
+# Average number of moth interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type == "Moth") |>
+    group_by(year) |>
+    summarise(total_moth = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_moth)) +
+    geom_line() +
+    labs(title = "Number of Moth interactions") 
+```
+
+Haha, that was fun. 
+
+It could be interesting to do some research to identify important or noteworthy meadow flower species and see which polliators they are most visited by.
+```{r}
+# could see pollinator types by plant species - potentially identify important species?
+pp_interactions |>
+    group_by(pltsp_code, pol_type) |>
+    summarise(no_int = sum(no_int, na.rm = TRUE)) |>
+    filter(pltsp_code == "ERIGFOLI") |>
+    ggplot(aes(x = pol_type, y = no_int)) +
+    geom_col()
+```
+
+```{r}
+# Explore most important plant species for bees?
+pp_interactions |>
+    group_by(pltsp_code, pol_type) |>
+    summarise(no_int = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    filter(pol_type == "Bee") |>
+    mutate(pltsp_code = fct_reorder(pltsp_code, no_int)) |>
+    arrange(desc(no_int)) |>
+    slice_head(n = 10) |>
+    ggplot(aes(x = pltsp_code, y = no_int)) +
+    geom_col() +
+    labs(title = "Top 10 plants most visited by bees") +
+    coord_flip()
+# The biggest one is Gilia capitata: "Globe gilia is very attractive to honey bees"
+```
+
+- Does the number of plant-pollinator interactions change over time? Does it vary by pollinator type (flies, bees, beetles, etc.)?
+    - interactions across seasons and years, as well as hourly interactions.
+    
+- What time of day are each pollinator type more often observed?
+
+- Does the number of plant-pollinator interactions vary with weather conditions (clouds, wind, temp)?
+- Are certain pollinator types (flies, bees, beetles, etc.) more likely to interact with plants under certain weather conditions?
+
+
+
+
+## Notes
+
+**Meadow site coordinates provided in metadata** could allow for a site map if interested
+
+
+**Interesting note from metadata:** "The meadows may have been maintained by Native American burning over at least the past 6,000 years (Highland, 2012). Decimation of Native Americans by the late 1700s and fire suppression since arrival of Europeans in the 1800s is associated with significant contraction of meadow habitat throughout the Cascade Range of Oregon (Miller and Halpern, 1998). In the Andrews Forest, montane meadows have contracted by 45% from 1948 to 2005 (Takaoka and Swanson, 2008, Rice, 2009, Highland, 2012)."
