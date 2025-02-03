@@ -2,11 +2,14 @@
 title: "Data exploration"
 author: Marina Kochuten
 date: 2-4-25
-format: html
+format:
+  html:
+    embed-resources: true
 messages: false
 warning: false
 editor_options: 
   chunk_output_type: console
+ 
 ---
 
 ## About
@@ -32,20 +35,61 @@ flower_surveys <- read_csv(here("data", "flower-surveys.csv")) |>
 
 ## Exploration
 
+### Structure of data
 ```{r}
 # How many observations indicate pollination interactions?
 print(paste("Number of pollinator interactions incidents in df:", count(pp_interactions, ppi_status)))
-# Could explore weather conditions for 0 or 1? Or even, how interaction incidences change over time?
+
 
 print(count(pp_interactions, year))
 # Missing data in 2019 and 2020, limited counts in 2021.
 # I think I should filter to 2011-2018
 ```
 
+
+### Pollination over time
 ```{r}
-ggplot(pp_interactions, aes(x = sampledate, y = ppi_status)) +
-    geom_point()
+# Let's take a look at the average number of pollinator visits each year
+pp_interactions|>
+    filter(year %in% c(2011:2018)) |>
+    group_by(year) |>
+    summarise(no_int = mean(no_int, na.rm = TRUE)) |>
+    ungroup() |> 
+ggplot(aes(x = year, y = no_int)) +
+    geom_point() +
+    geom_line() +
+    labs(title = "Average number of pollinator visits each year across all sites",
+         subtitle = "Sharp decline from 2013 to 2015, steadily increasing")
 ```
+
+```{r}
+# Let's also look at the total number of pollinator visits
+pp_interactions|>
+    filter(year %in% c(2011:2018)) |>
+    group_by(year) |>
+    summarise(no_int = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |> 
+ggplot(aes(x = year, y = no_int)) +
+    geom_point() +
+    geom_line() +
+    labs(title = "Total number of pollinator visits each year across all sites",
+         subtitle = "Increasing since 2015, due sampling effort, or a true trend?")
+```
+
+```{r}
+# Look at hourly pollination trends
+pp_interactions |>
+    filter(year %in% c(2011:2018)) |>
+    group_by(start_time) |>
+    summarise(no_int = mean(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    ggplot(aes(x = start_time, y = no_int)) +
+    geom_point() +
+    labs(title = "Average number of pollinator visits by time of day")
+```
+
+
+### Pollination and weather
 
 I'm curious to see how number of pollinator interactions vary under different weather conditions. My data contains the columns wind, clouds, and temp. Let's take a look at those:
 ```{r}
@@ -71,7 +115,6 @@ pp_interactions |>
     mutate(clouds = fct_reorder(clouds, interactions)) |>
     ggplot(aes(x = clouds, y = interactions)) +
     geom_col() +
-    scale_x_discrete(labels = c("Sunny", "Passing Clouds", "Shade", "Cloudy")) +
     coord_flip()
 ```
 
@@ -86,6 +129,7 @@ pp_interactions |>
     geom_point()
 ```
 
+### Pollinator type
 
 Now, I'd like to explore potential trends regarding pollinator type. First, I want to group the specific pollinator species into generic types:
 ```{r}
@@ -207,6 +251,8 @@ pp_interactions |>
 
 Haha, that was fun. 
 
+### Pollinator types and specific flower species
+
 It could be interesting to do some research to identify important or noteworthy meadow flower species and see which polliators they are most visited by.
 ```{r}
 # could see pollinator types by plant species - potentially identify important species?
@@ -215,8 +261,11 @@ pp_interactions |>
     summarise(no_int = sum(no_int, na.rm = TRUE)) |>
     filter(pltsp_code == "ERIGFOLI") |>
     ggplot(aes(x = pol_type, y = no_int)) +
-    geom_col()
+    geom_col() +
+    labs(title = "Number of interactions by pollinator for plant code ERIGFOLI")
 ```
+
+### Important plants for specific pollinators
 
 ```{r}
 # Explore most important plant species for bees?
@@ -243,8 +292,22 @@ pp_interactions |>
 - Does the number of plant-pollinator interactions vary with weather conditions (clouds, wind, temp)?
 - Are certain pollinator types (flies, bees, beetles, etc.) more likely to interact with plants under certain weather conditions?
 
+## Answering Part 2c Questions
 
+1. **What have you learned about your data? Have any potentially interesting patterns emerged?**
 
+- Originally, I thought that I had 10 years of data (such a nice round number), however surveys did not happen in 2019 nor 2020 (understandably) and 2021 surveys were for bees only, leaving me with 7 years of fairly comparable data. 
+- I am not sure that I have found any potentially interesting patterns so far, however I have come up with a few more questions and perhaps more direction for my final viz.
+
+2. **In HW #1, you outlined some questions that you wanted to answer using these data. Have you made any strides towards answering those questions? If yes, how so? If no, what next steps do you need to take (e.g. I need to create X plot type, I still need to track down Y data, I need to restructure existing data so that you can visualize it in Z ways, etc.)?**
+
+-  Exploring the question, does the number of plant-pollinator interactions vary with weather conditions (clouds, wind, temp), resulted with a pretty intuitive outcome. More interactions were recorded when it was sunny and still.
+- I looked into very general trends regarding the number of plant-pollinator interactions over the entirety of my data set, interactions by time of day, and briefly into trends during season (just for bees in 2018). There seems to be a cyclical nature of pollination visits over the entirety of the data set, and I am curious to explore potential underlying meaning, particularly plotting number of interactions against flower abundance. This will require me to dig into the flower survey data, where the authors have indicated that number of flower stalks are a good estimator of abundance. Just from a quick look, I do not see any obvious trends in pollination by time of day. 
+- I ended up exploring a bit of what plants see the highest visits from specific pollinator types, and ended up with the top 10 plants visited by bees. I think this could be an interesting place to take my project, especially if I narrowed my focus to a few key pollinators, or perhaps even a focus on key flower species and exploring what pollinators are most important to them. 
+
+3. **What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges.**
+
+- My data is intuitive and quite complete, which is great! I do not expect to have many issues with wrangling or other underlying issues. I think the biggest challenge I foresee with this project is narrowing down the data and my ideas into something meaningful and interesting to visualize. 
 
 ## Notes
 
