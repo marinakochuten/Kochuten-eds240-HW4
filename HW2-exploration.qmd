@@ -284,14 +284,6 @@ pp_interactions |>
 # The biggest one is Gilia capitata: "Globe gilia is very attractive to honey bees"
 ```
 
-- Does the number of plant-pollinator interactions change over time? Does it vary by pollinator type (flies, bees, beetles, etc.)?
-    - interactions across seasons and years, as well as hourly interactions.
-    
-- What time of day are each pollinator type more often observed?
-
-- Does the number of plant-pollinator interactions vary with weather conditions (clouds, wind, temp)?
-- Are certain pollinator types (flies, bees, beetles, etc.) more likely to interact with plants under certain weather conditions?
-
 ## Answering Part 2c Questions
 
 1. **What have you learned about your data? Have any potentially interesting patterns emerged?**
@@ -303,7 +295,7 @@ pp_interactions |>
 
 -  Exploring the question, does the number of plant-pollinator interactions vary with weather conditions (clouds, wind, temp), resulted with a pretty intuitive outcome. More interactions were recorded when it was sunny and still.
 - I looked into very general trends regarding the number of plant-pollinator interactions over the entirety of my data set, interactions by time of day, and briefly into trends during season (just for bees in 2018). There seems to be a cyclical nature of pollination visits over the entirety of the data set, and I am curious to explore potential underlying meaning, particularly plotting number of interactions against flower abundance. This will require me to dig into the flower survey data, where the authors have indicated that number of flower stalks are a good estimator of abundance. Just from a quick look, I do not see any obvious trends in pollination by time of day. 
-- I ended up exploring a bit of what plants see the highest visits from specific pollinator types, and ended up with the top 10 plants visited by bees. I think this could be an interesting place to take my project, especially if I narrowed my focus to a few key pollinators, or perhaps even a focus on key flower species and exploring what pollinators are most important to them. 
+- I ended up exploring a bit of what plants see the highest visits from specific pollinator types, and ended up with the top 10 plants visited by bees. I think this could be an interesting place to take my project, especially if I narrowed my focus to a few key pollinator species. Or, perhaps I research to see if there are any rare / endangered plant species in Oregon meadows, and look into what pollinators visit these species the most. This data set has reliable information about pollinators and plants down to the species level! Pretty neat. 
 
 3. **What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges.**
 
