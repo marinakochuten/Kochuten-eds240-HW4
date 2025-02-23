@@ -63,6 +63,28 @@ ggplot(aes(x = year, y = no_int)) +
 ```
 
 ```{r}
+test <- pp_interactions |>
+    filter(str_detect(vissp_name, "Bombus")) |>
+    group_by(year) |>
+    summarise(no_int = mean(no_int, na.rm = TRUE)) |>
+    ungroup()
+
+ggplot(test, aes(x = year, y = no_int)) +
+    geom_point() +
+    geom_line()
+
+flower_surveys |>
+    group_by(year) |>
+    summarise(no_stalk = sum(no_stalk, na.rm = TRUE)) |>
+    ungroup() |>
+    ggplot(aes(x = year, y = no_stalk)) +
+    geom_point() +
+    geom_line()
+
+```
+
+
+```{r}
 # Let's also look at the total number of pollinator visits
 pp_interactions|>
     filter(year %in% c(2011:2018)) |>
@@ -202,6 +224,19 @@ pp_interactions |>
 ```
 
 ```{r}
+# Average number of wasp interactions over time?
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(str_detect(vissp_type, "wasp")) |>
+    group_by(year) |>
+    summarise(total_hover = sum(no_int, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = total_hover)) +
+    geom_line() +
+    labs(title = "Number of Wasp interactions") 
+```
+
+
+```{r}
 # Average number of fly interactions over time?
 pp_interactions |>
     filter(year != 2021) |>
@@ -251,6 +286,22 @@ pp_interactions |>
 
 Haha, that was fun. 
 
+```{r}
+pp_interactions |>
+    filter(year != 2021) |>
+    filter(pol_type != "Bee" & pol_type != "other") |>
+    group_by(vissp_type) |>
+    mutate(total_int = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    mutate(vissp_type = fct_reorder(vissp_type, total_int)) |>
+    slice_head(n = 10) |>
+    ggplot(aes(x = total_int, y = vissp_type)) +
+    geom_col() +
+    labs(title = "Other than bees, hover-flies are pollinating the most meadow species!")
+    
+```
+
+
 ### Pollinator types and specific flower species
 
 It could be interesting to do some research to identify important or noteworthy meadow flower species and see which polliators they are most visited by.
@@ -283,6 +334,155 @@ pp_interactions |>
     coord_flip()
 # The biggest one is Gilia capitata: "Globe gilia is very attractive to honey bees"
 ```
+
+```{r}
+pp_interactions |>
+    filter(str_detect(vissp_type, "hover-fly")) |>
+    group_by(pltsp_code, vissp_type) |>
+    summarise(no_int = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    mutate(pltsp_code = fct_reorder(pltsp_code, no_int)) |>
+    arrange(desc(no_int)) |>
+    slice_head(n = 10) |>
+    ggplot(aes(x = pltsp_code, y = no_int)) +
+    geom_col() +
+    labs(title = "Top 10 plants most visited by hover flies") +
+    coord_flip()
+```
+
+```{r}
+# hoverflys vs bees
+hvb <- pp_interactions |>
+    filter(year != 2021) |>
+    filter(str_detect(vissp_type, "hover-fly") | str_detect(vissp_name, "Bombus")) |>
+    #filter(!str_detect(vissp_type, "beetle")) |>
+    mutate(pollinator = case_when(str_detect(vissp_type, "hover-fly") ~ "Hover-fly",
+                                  str_detect(vissp_type, "bee") ~ " Bumblebee"))
+
+ggplot(hvb, aes(x = pollinator)) +
+    geom_histogram(stat = "count")
+
+hvb |>
+    group_by(pollinator) |>
+    summarise(no_int = sum(no_int, na.rm = T)) |>
+    ungroup() |>
+    ggplot(aes(x = pollinator, y = no_int)) +
+    geom_col()
+
+hvb |>
+    group_by(year, pollinator) |>
+    summarise(count = n()) |>
+    ungroup() |>
+    ggplot(aes(x = year, y = count, color = pollinator)) +
+    geom_point() +
+    geom_line()
+
+test <- hvb |>
+    group_by(pltsp_code, pollinator) |>
+    summarise(no_int = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    mutate(pltsp_code = fct_reorder(pltsp_code, no_int))
+        
+test |>
+    filter(pollinator == "Bee") |>
+    slice_max(order_by = no_int, n = 3) |>
+    #arrange(desc(no_int)) |>
+    #slice_head(n = 3) |>
+    ggplot(aes(x = pltsp_code, y = no_int)) +
+    geom_col() +
+    labs(title = "Top 3 plants most visited by Bumble Bees") +
+    coord_flip()
+
+test |>
+    filter(pollinator == "Hover-fly") |>
+    arrange(desc(no_int)) |>
+    slice_head(n = 3) |>
+    ggplot(aes(x = pltsp_code, y = no_int)) +
+    geom_col() +
+    labs(title = "Top 3 plants most visited by Hover Flies") +
+    coord_flip()
+    
+```
+
+## Checking out Flower Species Abundance
+I'm interested in normalizing number of stalks as a percentage as a whole to get an idea of how common these plants are. Also could be interesting to plot number of stalks over time against the pollinator sitings?
+
+```{r}
+flower_surveys |>
+    filter(pltsp_code == "GILICAPI" | pltsp_code == "LIGUGRAY" | pltsp_code == "ERIOLANA") |>
+    group_by(year, pltsp_code) |>
+    summarise(abundance = sum(no_stalk, na.rm = T)) |>
+    ggplot(aes(x = year, y = abundance, color = pltsp_code)) +
+    geom_line() +
+    labs(title = "Hover-fly plants abundance over time")
+
+flower_surveys |>
+    filter(pltsp_code == "GILICAPI" | pltsp_code == "ORTHIMBR" | pltsp_code == "DELPNUTT") |>
+    group_by(year, pltsp_code) |>
+    summarise(abundance = sum(no_stalk, na.rm = T)) |>
+    ggplot(aes(x = year, y = abundance, color = pltsp_code)) +
+    geom_line() +
+    labs(title = "Bumble-bee plants abundance over time")
+
+flower_surveys |>
+    filter(pltsp_code == "ORTHIMBR" | pltsp_code == "LIGUGRAY") |>
+    group_by(year, pltsp_code) |>
+    summarise(abundance = sum(no_stalk, na.rm = T)) |>
+    ggplot(aes(x = year, y = abundance, color = pltsp_code)) +
+    geom_line()
+
+abundance <- flower_surveys |>
+    filter(!is.na(pltsp_code)) |>
+    mutate(total_stalks = sum(no_stalk, na.rm = TRUE)) |>
+    group_by(pltsp_code) |>
+    mutate(species_stalks = sum(no_stalk, na.rm = TRUE),
+           percent_abundance = (species_stalks / total_stalks)*100) |>
+    ungroup() |>
+    mutate(pltsp_code = fct_reorder(pltsp_code, percent_abundance))
+
+
+test2 <- abundance |>
+    group_by(pltsp_code) |>
+    summarise(percent_abundance = mean(percent_abundance))
+    
+df_sorted <- test2[order(test2$percent_abundance, decreasing = TRUE), ]
+
+df_sorted |>
+ slice_head(n = 20) |>
+    ggplot(aes(x = percent_abundance, y = pltsp_code)) +
+    geom_col()
+```
+
+```{r}
+# Test for petal plot from stack overflow
+petals = 5
+petal_angle = 360/petals
+
+petal_plot_data <- pp_interactions |>
+    # Remove 2021, as only bees were sampled in this year
+    filter(year != 2021) |>
+    filter(pol_type != "Bee") |>
+    group_by(pol_type) |>
+    summarise(visits = sum(no_int, na.rm = TRUE)) |>
+    ungroup() #|>
+    #slice_max(order_by = visits, n = 5)
+    
+
+petal_plot_data |>
+    mutate(petal = row_number(),
+           theta0 = petal * petal_angle) |>
+    reframe(theta = theta0 + c(0, -petal_angle/2,  0, 
+                               petal_angle/2, 0),
+            r = visits^0.5 * c(0, 0.6, 1, 0.6, 0), .by = c(vissp_type, visits, petal, theta0)) |> 
+    ggplot(aes(theta, r + 0.1, group = petal)) +
+    ggforce::stat_bspline(geom = "area", n = 1000, fill = "pink") +
+    #guides(fill = "none") +
+    coord_radial() +
+    theme_void() #+
+    #scale_fill_manual(values = c("red", "orange", "blue", "green", "grey"))
+    
+```
+
 
 ## Answering Part 2c Questions
 
