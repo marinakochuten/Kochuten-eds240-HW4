@@ -1,0 +1,353 @@
+---
+title: "HW3-drafting-viz"
+author: Marina Kochuten
+date: 02-25-2025
+warning: false
+message: false
+format:
+  html:
+    embed-resources: true
+---
+
+## 1. Which option do you plan to pursue?
+
+I plan to pursue option 1, infographic! 
+
+## 2. Restate your question(s). Has this changed at all since HW #1? If yes, how so?
+
+**My overarching question is:** How do hover flies compare to bumble bees as pollinators? 
+
+**Sub-questions:**
+
+- Other than bees, what are the most observed / "busiest" pollinators? (Hint: the answer is hover flies)
+- How to hover flies shine in ways that bees don't? While bumble bees stick close to their homes, hover flies travel very long distances, pollinating populations of plants that are far from one another and helping increase genetic biodiversity and healthy plants!
+- What meadow species do bumble bees pollinate the most vs which species do hover flies pollinate the most? For both bees and hover flies, the top 3 visited species are native plants. The most visited plant by hover flies is the 18th most abundant in the meadows, which I find very curious!
+
+My questions have changed a lot since HW #1. Originally I was interested in examining potential pollination trends over time. With more exploration, that question felt quite broad with little interesting results, so I narrowed my scope to focus on unsung pollination heroes! Bees are cute and all (also, I recognize, very important) but they aren't the only little workers helping us out in major ways. And who doesn't love an underdog? 
+
+## 3. Explain which variables from your data set(s) you will use to answer your question(s), and how.
+
+My data set shows pollinator species interactions. I am using the variables for plant species (pltsp_code), pollinator types, and interactions (no_int) to visualize how many times my pollinators of interest are visiting each plant species, as well as how often each pollinator is observed pollinating.
+
+## 4. Viz Inspiration
+
+One element that I knew I wanted to include from the beginning was an adaptation of a pie chart where the pie slices are shaped like petals, with larger quantities represented by larger petals. Here is an example of something similar to what I was thinking:
+
+<figure>
+  <img src="images/flower-pie.png" width="400">
+  <figcaption>https://ethnobiomed.biomedcentral.com/articles/10.1186/s13002-023-00608-1</figcaption>
+</figure>
+
+I actually [found this post on stack overflow](https://stackoverflow.com/questions/79005247/pie-petal-plot-in-python-or-r) where they make an extremely similar plot. I hope to adapt that code for my viz! 
+
+
+Another viz I really loved is this one from Georgios Karamanis portfolio:
+
+<figure>
+  <img src="images/buildings-bar.png" width="400">
+  <figcaption>https://karaman.is/blog/2022/2/tallest-buildings-in-sweden</figcaption>
+</figure>
+
+I had planned to make a few bar plots for my infographic, and they represent different species. Could be really fun to have the bars be represented by sketches of the plants they represent, given enough time!  
+
+## 5. Hand-drawn anticipated visualizations
+
+<img src="images/infographic-sketch.png" width=100%>
+
+## 6. Mock up hand drawn viz in code
+
+### Setup and preliminary cleaning
+
+```{r}
+# Load packages ----
+library(tidyverse)
+library(janitor)
+library(here)
+library(showtext)
+```
+
+```{r}
+# Read in pollinator data ----
+pp_interactions <- read_csv(here("data", "pp-interactions.csv")) |>
+    clean_names()
+
+# Add a column with pollinator generic type to group hover flies together ----
+pp_interactions <- pp_interactions |>
+    mutate(pol_type = case_when(str_detect(vissp_type, "beetle") ~ "Beetle",
+                                str_detect(vissp_type, "hover-fly") ~ "Hover Fly",
+                                str_detect(vissp_type, " fly") ~ "Fly",
+                                str_detect(vissp_type, "wasp") ~ "Wasp",
+                                str_detect(vissp_type, "butterfly") ~ "Butterfly",
+                                str_detect(vissp_type, "grasshopper") ~ "Grasshopper",
+                                str_detect(vissp_type, "moth") ~ "Moth",
+                                str_detect(vissp_type, "hummingbird") ~ "Hummingbird",
+                                str_detect(vissp_type, "social") ~ "Social Bee",
+                                str_detect(vissp_type, "solitary") ~ "Solitary Bee",
+                                str_detect(vissp_type, "ant") ~ "Ant",
+                                str_detect(vissp_type, "spider") ~ "Spider",
+                                .default = "other"))
+```
+
+### Petal Plot
+
+I'll start with building my flower shaped pie chart. First, let wrangle the data:
+
+```{r}
+# Wrangle data for petal plot ---- 
+petal_plot_data <- pp_interactions |>
+    
+    # Remove 2021, as only bees were sampled in this year
+    filter(year != 2021) |>
+    
+    # Filter out bees and "other" pollinators
+    filter(pol_type != "other" & pol_type != "Social Bee" & pol_type != "Solitary Bee") |>
+    
+    # Count total visits per pollinator
+    group_by(vissp_type) |>
+    summarize(visits = sum(no_int, na.rm = TRUE)) |>
+    ungroup() |>
+    
+    # Pull out the top 5 busiest pollinators
+    slice_max(order_by = visits, n = 5)
+```
+
+Time to build the plot! The code was adapted from [this very helpful post on stack overflow](https://stackoverflow.com/questions/79005247/pie-petal-plot-in-python-or-r)
+
+```{r}
+# Petal plot ----
+
+# Font
+font_add_google(name = "Quicksand", family = "quicksand")
+showtext_auto()
+
+# Define number of petals and petal angle
+petals = 5
+petal_angle = 360/petals
+
+# Plot
+#petal_plot <- 
+
+petal_plot_data |>
+    
+    # Calculate angles and radii
+    mutate(petal = row_number(),
+           theta0 = petal * petal_angle) |>
+    reframe(theta = theta0 + c(0, -petal_angle/2,  0, 
+                               petal_angle/2, 0),
+            r = visits * c(0, 0.6, 1, 0.6, 0), .by = c(vissp_type, visits, petal, theta0)) |> 
+    
+    # Plot theta and r and group by petal no. 
+    ggplot(aes(theta, r, group = petal)) +
+    ggforce::stat_bspline(geom = "area", n = 1000, fill = "#E195AB", ) +
+    labs(title = "Aside from bees, hover flies are the busiest pollinators",
+         subtitle = "From 2011-2018, hover flies were observed pollinating ~ 1/3 times that of bumble bees") +
+    #guides(fill = "none") +
+    coord_radial() +
+    theme_void() +
+    theme(
+        plot.title = element_text(family = "quicksand",
+                                  face = "bold", 
+                                  hjust = 0.5, 
+                                  size = 18),
+        plot.subtitle = element_text(family = "quicksand",
+                                     hjust = 0.5)
+    )
+
+#ggsave("flower-plot.pdf", petal_plot)
+```
+Here is the draft! Things were getting weird when I was trying to annotate, so I labeled everything using Affinity: 
+
+<img src="images/petal-plot-annotated.png" width="800">
+
+
+A few of the petals are pretty similar sizes, but I think it's clear that the biggest one (representing hover flies) is bigger than the others, which is what I was going for.
+
+### Favorite plants bar graphs
+
+For this, I will make 2 simple bar graphs showing the top 3 most visited plants by each of my pollinators. I annotate with how abundant each species is, because I find it really interesting that the plant that hover flies visit the most is 18th most abundant!
+
+```{r}
+# Create a pollinator data frame that only includes bumble bees and hover flies ----
+hvb <- pp_interactions |>
+    filter(year != 2021) |>
+    filter(str_detect(vissp_type, "hover-fly") | str_detect(vissp_name, "Bombus")) |>
+    mutate(pollinator = case_when(str_detect(vissp_type, "hover-fly") ~ "Hover-fly",
+                                  str_detect(vissp_type, "bee") ~ "Bee")) |>
+    group_by(pltsp_code, pollinator) |>
+    summarise(visits = sum(no_int, na.rm = TRUE)) |>
+    ungroup()
+```
+
+```{r}
+#bee_plot <- 
+
+hvb |>
+    filter(pollinator == "Bee") |>
+    slice_max(order_by = visits, n = 3) |>
+    ggplot(aes(x = pltsp_code, y = visits)) +
+    geom_col(fill = "#ECCED7") +
+    labs(title = "Bumble Bees' Favorite Flowers",
+         y = "Number of flower visits") +
+    coord_flip() +
+    scale_x_discrete(labels = c("#3. Mountain Owl's Clover", "#2. Blue Thimble Flower", "#1. Nuttail's Larkspur")) +
+    scale_y_continuous(labels = scales::label_comma()) +
+    annotate("text", x = "ORTHIMBR", y = 4000, label = "3rd Most Common Meadow Species", 
+             fontface = "italic") +
+    annotate("text", x = "GILICAPI", y = 3500, label = "2nd Most Common Meadow Species", 
+             fontface = "italic") +
+    annotate("text", x = "DELPNUTT", y = 2500, label = "5th Most Common Meadow Species", 
+             fontface = "italic") +
+    theme_minimal() +
+    theme(
+        # Axis lables
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0)),
+        axis.text.y = element_text(size = 12, family = "quicksand"),
+        
+        # Title
+        plot.title = element_text(size = 18, 
+                                  margin = margin(10, 0, 10, 0), 
+                                  hjust = -1.45,
+                                  family = "quicksand",
+                                  face = "bold"),
+        plot.caption = element_text(size = 8, face = "italic"),
+        
+        # Grid lines
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        
+        # Margins
+        plot.margin = margin(10, 10, 10, 10)
+    )
+
+#ggsave(filename = "bee_favs.png", plot = bee_plot, width = 10, height = 6)
+```
+
+
+### Hover fly bar graph
+```{r}
+#hf_plot <- 
+hvb |>
+    filter(pollinator == "Hover-fly") |>
+    slice_max(order_by = visits, n = 3) |>
+    ggplot(aes(x = fct_reorder(pltsp_code, visits, .desc = F), y = visits)) +
+    geom_col(fill = "#ECCED7") +
+    labs(title = "Hover Flies' Favorite Flowers",
+         y = "Number of flower visits") +
+    coord_flip() +
+    scale_x_discrete(labels = c( "#3. Blue Thimble Flower", "#2. Oregon Sunshine","#1. Gray's Licorice Root" )) +
+        scale_y_continuous(labels = scales::label_comma(),
+                           breaks = c(0, 1000, 2000, 3000, 4000)) +
+    annotate("text", x = "LIGUGRAY", y = 2000, label = "18th Most Common Meadow Species", fontface = "italic") +
+    annotate("text", x = "ERIOLANA", y = 1900, label = "Most Common Meadow Species", fontface = "italic") +
+    annotate("text", x = "GILICAPI", y = 1500, label = "2nd Most Common Meadow Species", fontface = "italic") +
+    theme_minimal() +
+    theme(
+        # Axis lables
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0)),
+        axis.text.y = element_text(size = 12, family = "quicksand"),
+        
+        # Title
+        plot.title = element_text(size = 18, 
+                                  margin = margin(10, 0, 10, 0), 
+                                  hjust = -1.1,
+                                  family = "quicksand",
+                                  face = "bold"),
+        plot.caption = element_text(size = 8, face = "italic"),
+        
+        # Grid lines
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        
+        # Margins
+        plot.margin = margin(10, 10, 10, 10)
+    )
+
+
+#ggsave(filename = "hover_fly_favs.png", plot = hf_plot, width = 10, height = 6)
+```
+
+I would love to try and make these bars look like the species they represent in Affinity! I also plan to make the annotations the same font, but could not figure out how to change the font family when using annotate(). 
+
+### Simple map of meadow sites showing distance that bees vs hover flies can pollinate
+
+From the metadata, I have the coordinates of the region containing the meadows that were observed in my data:
+
+- Northern:  	44.28020840	
+- Southern:  	44.20308930
+- Western:  	-122.15208820	
+- Eastern:  	-122.12605670
+
+I plan to mark the sites on the map by finding the centroid of this area and marking with an X. 
+
+Then, I will create 2 buffers around the centroid, one showing how far bees can travel to pollenate and one showing the same for flies. 
+```{r}
+library(tmap)
+library(spData)
+library(sf)
+
+# Grab Oregon basemap
+oregon <- us_states |>
+    filter(NAME == "Oregon")
+
+# Define region with the coordinates (min_lat, min_lon, max_lat, max_lon)
+min_lat <- 44.20308930 
+min_lon <- -122.15208820	
+max_lat <- 44.28020840	  
+max_lon <- -122.12605670 
+
+# Create a box of the study region
+bbox <- st_sfc(st_polygon(list(matrix(c(min_lon, min_lat,
+                                         min_lon, max_lat,
+                                         max_lon, max_lat,
+                                         max_lon, min_lat,
+                                         min_lon, min_lat), 
+                                       ncol = 2, byrow = TRUE))), crs = st_crs(oregon))
+
+# Find the centroid of the box
+centroid <- st_centroid(bbox, crs = st_crs(oregon))
+
+# Create buffers around centroid for bee and hover fly ----
+# Transform to a projected crs
+centroid_projected <- st_transform(centroid, crs = 26910)
+
+# Create a 1km buffer (1000 meters)
+bee_buffer <- st_buffer(centroid_projected, dist = 1000) |>
+    st_transform(crs = st_crs(oregon))
+
+# Create a 100km buffer (100000 meters)
+fly_buffer <- st_buffer(centroid_projected, dist = 100000) |>
+    st_transform(crs = st_crs(oregon))
+
+
+
+tm_shape(oregon) +
+    tm_fill(col = "grey96") +
+    tm_borders(lwd = 2) +
+    tm_layout(frame = FALSE) +
+    tm_shape(fly_buffer) +
+    tm_fill(col = "blue", alpha = 0.2) +
+    tm_shape(centroid) +
+    tm_dots(col = "#E195AB", shape = 4, size = 1, border.lwd = 2) +
+    tm_shape(bee_buffer) +
+    tm_fill(col = "black")
+    
+```
+Oh no! I was wondering if this would be the case. The radius that bees can travel (~1km) is too small to see at this scale (represented on my map as the black dot). In this case, I will just include a marker indicating study site and the radius for hover flies, and then write in a caption that hover flies carry pollen 100x farther than bumble bees. I want to add a nice simple basemap to this plot, to give more context to where things are. Still working on finding that file!
+I plan to add titles and annotations to this plot in Affinity, as I find it much easier to move things around and resize when they are made there in the first place. 
+
+### 7. Answer the following questions:
+
+a. What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R? If you struggled with mocking up any of your three visualizations (from #6, above), describe those challenges here.
+
+- My first two viz's, the petal plot and the bar charts, were easy enough to mock up! I am finding it much easier to update font's in Affinity, and I plan to update the labels on my bar chart to match the title font there. For my third viz, the map, I am struggling to find a basemap that is clean and simple, but still looks nice. 
+
+b. What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven’t covered in class that you’ll be learning how to use for your visualizations?
+
+- I used ggforce for creating the flower petal plot! This helped get the long rounded shapes for my petals. I also used tmap for my map, which I learned in spatial last quarter. 
+
+c. What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
+
+- I would love feedback on how to most effectively communicate that hover flies can carry viable pollen 100x that of bumble bees. The map seemed like the best way to me but I'm not sure that it will get the message across!
+
