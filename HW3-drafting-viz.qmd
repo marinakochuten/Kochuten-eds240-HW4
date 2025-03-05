@@ -34,8 +34,8 @@ My data set shows pollinator species interactions. I am using the variables for 
 One element that I knew I wanted to include from the beginning was an adaptation of a pie chart where the pie slices are shaped like petals, with larger quantities represented by larger petals. Here is an example of something similar to what I was thinking:
 
 <figure>
-  <img src="images/flower-pie.png" width="400">
-  <figcaption>https://ethnobiomed.biomedcentral.com/articles/10.1186/s13002-023-00608-1</figcaption>
+<img src="images/flower-pie.png" width="400">
+<figcaption>https://ethnobiomed.biomedcentral.com/articles/10.1186/s13002-023-00608-1</figcaption>
 </figure>
 
 I actually [found this post on stack overflow](https://stackoverflow.com/questions/79005247/pie-petal-plot-in-python-or-r) where they make an extremely similar plot. I hope to adapt that code for my viz! 
@@ -44,8 +44,8 @@ I actually [found this post on stack overflow](https://stackoverflow.com/questio
 Another viz I really loved is this one from Georgios Karamanis portfolio:
 
 <figure>
-  <img src="images/buildings-bar.png" width="400">
-  <figcaption>https://karaman.is/blog/2022/2/tallest-buildings-in-sweden</figcaption>
+<img src="images/buildings-bar.png" width="400">
+<figcaption>https://karaman.is/blog/2022/2/tallest-buildings-in-sweden</figcaption>
 </figure>
 
 I had planned to make a few bar plots for my infographic, and they represent different species. Could be really fun to have the bars be represented by sketches of the plants they represent, given enough time!  
@@ -179,38 +179,38 @@ hvb <- pp_interactions |>
 ```
 
 ```{r}
-#bee_plot <- 
-
-hvb |>
+bee_plot <- hvb |>
     filter(pollinator == "Bee") |>
     slice_max(order_by = visits, n = 3) |>
     ggplot(aes(x = pltsp_code, y = visits)) +
     geom_col(fill = "#ECCED7") +
-    labs(title = "Bumble Bees' Favorite Flowers",
+    labs(#title = "Bumble Bees' Favorite Flowers",
          y = "Number of flower visits") +
     coord_flip() +
     scale_x_discrete(labels = c("#3. Mountain Owl's Clover", "#2. Blue Thimble Flower", "#1. Nuttail's Larkspur")) +
     scale_y_continuous(labels = scales::label_comma()) +
-    annotate("text", x = "ORTHIMBR", y = 4000, label = "3rd Most Common Meadow Species", 
-             fontface = "italic") +
-    annotate("text", x = "GILICAPI", y = 3500, label = "2nd Most Common Meadow Species", 
-             fontface = "italic") +
-    annotate("text", x = "DELPNUTT", y = 2500, label = "5th Most Common Meadow Species", 
-             fontface = "italic") +
+    #annotate("text", x = "ORTHIMBR", y = 4000, label = "3rd Most Common Meadow Species", 
+            # fontface = "italic") +
+    #annotate("text", x = "GILICAPI", y = 3500, label = "2nd Most Common Meadow Species", 
+             #fontface = "italic") +
+    #annotate("text", x = "DELPNUTT", y = 2500, label = "5th Most Common Meadow Species", 
+             #fontface = "italic") +
     theme_minimal() +
     theme(
         # Axis lables
         axis.title.y = element_blank(),
-        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0)),
-        axis.text.y = element_text(size = 12, family = "quicksand"),
+        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0),
+                                    size = 60),
+        axis.text.y = element_text(size = 60, family = "quicksand", face = "bold"),
+        axis.text.x = element_text(size = 60, family = "quicksand"),
         
         # Title
-        plot.title = element_text(size = 18, 
-                                  margin = margin(10, 0, 10, 0), 
-                                  hjust = -1.45,
-                                  family = "quicksand",
-                                  face = "bold"),
-        plot.caption = element_text(size = 8, face = "italic"),
+        # plot.title = element_text(size = 18, 
+        #                           margin = margin(10, 0, 10, 0), 
+        #                           hjust = -1.1,
+        #                           family = "quicksand",
+        #                           face = "bold"),
+        # plot.caption = element_text(size = 8, face = "italic"),
         
         # Grid lines
         panel.grid.major.x = element_blank(),
@@ -220,52 +220,151 @@ hvb |>
         plot.margin = margin(10, 10, 10, 10)
     )
 
-#ggsave(filename = "bee_favs.png", plot = bee_plot, width = 10, height = 6)
+ggsave(filename = "bee_favs.png", plot = bee_plot, width = 8, height = 6)
+```
+
+```{r}
+# Make this bee bar graph into a lollipop chart!
+bee_lolli <- hvb |>
+    filter(pollinator == "Bee") |>
+    slice_max(order_by = visits, n = 3) |>
+    mutate(rank = c("A", "B", "C")) |>
+    ggplot(aes(x = rank, y = visits)) +
+    geom_point(fill = "#ECCED7") +
+    geom_linerange(aes(ymin = 0, ymax = visits)) +
+    labs(#title = "Bumble Bees' Favorite Flowers",
+         y = "Number of flower visits") +
+    #coord_flip() +
+    scale_x_discrete(labels = c( "#1. Nuttail's Larkspur", 
+                                 "#2. Blue Thimble Flower", 
+                                 "#3. Mountain Owl's Clover")) +
+    scale_y_continuous(labels = scales::label_comma()) +
+    #annotate("text", x = "ORTHIMBR", y = 4000, label = "3rd Most Common Meadow Species", 
+            # fontface = "italic") +
+    #annotate("text", x = "GILICAPI", y = 3500, label = "2nd Most Common Meadow Species", 
+             #fontface = "italic") +
+    #annotate("text", x = "DELPNUTT", y = 2500, label = "5th Most Common Meadow Species", 
+             #fontface = "italic") +
+    theme_minimal() +
+    theme(
+        # Axis lables
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(family = "quicksand", margin = margin(10,15,0,10),
+                                    size = 12),
+        axis.text.x = element_text(size = 12, family = "quicksand", face = "bold"),
+        axis.text.y = element_text(size = 12, family = "quicksand"),
+        
+        # Title
+        # plot.title = element_text(size = 18, 
+        #                           margin = margin(10, 0, 10, 0), 
+        #                           hjust = -1.1,
+        #                           family = "quicksand",
+        #                           face = "bold"),
+        # plot.caption = element_text(size = 8, face = "italic"),
+        
+        # Grid lines
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        
+        # Margins
+        plot.margin = margin(10, 10, 10, 10)
+    )
+
+ggsave(filename = "bee-lolli.pdf", device = "pdf", plot = bee_lolli, width = 8, height = 6)
+```
+
+```{r}
+# Fly lolli
+ fly_lolli <- hvb |>
+    filter(pollinator == "Hover-fly") |>
+    slice_max(order_by = visits, n = 3) |>
+     mutate(rank = c("A", "B", "C")) |>
+    ggplot(aes(x = rank, y = visits)) +
+    geom_point(fill = "#ECCED7") +
+    geom_linerange(aes(ymin = 0, ymax = visits)) +
+    labs(#title = "Hover Flies' Favorite Flowers",
+         y = "Number of flower visits") +
+    #coord_flip() +
+    scale_x_discrete(labels = c( "#1. Gray's Licorice Root",
+                                 "#2. Oregon Sunshine", 
+                                 "#3. Blue Thimble Flower" )) +
+    scale_y_continuous(labels = scales::label_comma(),
+                       breaks = c(0, 1000, 2000, 3000, 4000)) +
+    #annotate("text", x = "LIGUGRAY", y = 2000, label = "18th Most Common Meadow Species", fontface = "italic") +
+    #annotate("text", x = "ERIOLANA", y = 1900, label = "Most Common Meadow Species", fontface = "italic") +
+    #annotate("text", x = "GILICAPI", y = 1500, label = "2nd Most Common Meadow Species", fontface = "italic") +
+    theme_minimal() +
+    theme(
+        # Axis lables
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(family = "quicksand", margin = margin(10,0,0,0),
+                                    size = 12),
+        axis.text.x = element_text(size = 12, family = "quicksand", face = "bold"),
+        axis.text.y = element_text(size = 12, family = "quicksand"),
+        
+        # Title
+        # plot.title = element_text(size = 18, 
+        #                           margin = margin(10, 0, 10, 0), 
+        #                           hjust = -1.1,
+        #                           family = "quicksand",
+        #                           face = "bold"),
+        # plot.caption = element_text(size = 8, face = "italic"),
+        
+        # Grid lines
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        
+        # Margins
+        plot.margin = margin(10,25,10,10)
+    )
+
+ggsave(filename = "fly-lolli.pdf", device = "pdf", plot = fly_lolli, width = 8, height = 6)
 ```
 
 
 ### Hover fly bar graph
 ```{r}
-#hf_plot <- 
-hvb |>
+hf_plot <- hvb |>
     filter(pollinator == "Hover-fly") |>
     slice_max(order_by = visits, n = 3) |>
     ggplot(aes(x = fct_reorder(pltsp_code, visits, .desc = F), y = visits)) +
     geom_col(fill = "#ECCED7") +
-    labs(title = "Hover Flies' Favorite Flowers",
+    labs(#title = "Hover Flies' Favorite Flowers",
          y = "Number of flower visits") +
     coord_flip() +
     scale_x_discrete(labels = c( "#3. Blue Thimble Flower", "#2. Oregon Sunshine","#1. Gray's Licorice Root" )) +
-        scale_y_continuous(labels = scales::label_comma(),
-                           breaks = c(0, 1000, 2000, 3000, 4000)) +
-    annotate("text", x = "LIGUGRAY", y = 2000, label = "18th Most Common Meadow Species", fontface = "italic") +
-    annotate("text", x = "ERIOLANA", y = 1900, label = "Most Common Meadow Species", fontface = "italic") +
-    annotate("text", x = "GILICAPI", y = 1500, label = "2nd Most Common Meadow Species", fontface = "italic") +
+    scale_y_continuous(labels = scales::label_comma(),
+                       breaks = c(0, 1000, 2000, 3000, 4000)) +
+    #annotate("text", x = "LIGUGRAY", y = 2000, label = "18th Most Common Meadow Species", fontface = "italic") +
+    #annotate("text", x = "ERIOLANA", y = 1900, label = "Most Common Meadow Species", fontface = "italic") +
+    #annotate("text", x = "GILICAPI", y = 1500, label = "2nd Most Common Meadow Species", fontface = "italic") +
     theme_minimal() +
     theme(
         # Axis lables
         axis.title.y = element_blank(),
-        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0)),
-        axis.text.y = element_text(size = 12, family = "quicksand"),
+        axis.title.x = element_text(family = "quicksand", margin = margin(10,0,0,0),
+                                    size = 60),
+        axis.text.y = element_text(size = 60, family = "quicksand", face = "bold"),
+        axis.text.x = element_text(size = 60, family = "quicksand"),
         
         # Title
-        plot.title = element_text(size = 18, 
-                                  margin = margin(10, 0, 10, 0), 
-                                  hjust = -1.1,
-                                  family = "quicksand",
-                                  face = "bold"),
-        plot.caption = element_text(size = 8, face = "italic"),
+        # plot.title = element_text(size = 18, 
+        #                           margin = margin(10, 0, 10, 0), 
+        #                           hjust = -1.1,
+        #                           family = "quicksand",
+        #                           face = "bold"),
+        # plot.caption = element_text(size = 8, face = "italic"),
         
         # Grid lines
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         
         # Margins
-        plot.margin = margin(10, 10, 10, 10)
+        plot.margin = margin(10,25,10,10)
     )
 
 
-#ggsave(filename = "hover_fly_favs.png", plot = hf_plot, width = 10, height = 6)
+ggsave(filename = "hover_fly_favs.pdf", device = "pdf", plot = hf_plot, width = 8, height = 6)
 ```
 
 I would love to try and make these bars look like the species they represent in Affinity! I also plan to make the annotations the same font, but could not figure out how to change the font family when using annotate(). 
@@ -299,11 +398,11 @@ max_lon <- -122.12605670
 
 # Create a box of the study region
 bbox <- st_sfc(st_polygon(list(matrix(c(min_lon, min_lat,
-                                         min_lon, max_lat,
-                                         max_lon, max_lat,
-                                         max_lon, min_lat,
-                                         min_lon, min_lat), 
-                                       ncol = 2, byrow = TRUE))), crs = st_crs(oregon))
+                                        min_lon, max_lat,
+                                        max_lon, max_lat,
+                                        max_lon, min_lat,
+                                        min_lon, min_lat), 
+                                      ncol = 2, byrow = TRUE))), crs = st_crs(oregon))
 
 # Find the centroid of the box
 centroid <- st_centroid(bbox, crs = st_crs(oregon))
@@ -322,17 +421,19 @@ fly_buffer <- st_buffer(centroid_projected, dist = 100000) |>
 
 
 
-tm_shape(oregon) +
-    tm_fill(col = "grey96") +
-    tm_borders(lwd = 2) +
+map <- tm_shape(oregon) +
+    tm_fill(col = "#FDFAFB") +
+    tm_borders(lwd = 5, col = "#666666") +
     tm_layout(frame = FALSE) +
     tm_shape(fly_buffer) +
-    tm_fill(col = "blue", alpha = 0.2) +
+    tm_borders(col = "#CB904A", lwd = 4) +
     tm_shape(centroid) +
-    tm_dots(col = "#E195AB", shape = 4, size = 1, border.lwd = 2) +
+    tm_dots(col = "#E195AB", shape = 4, size = 1, border.lwd = 5) +
     tm_shape(bee_buffer) +
-    tm_fill(col = "black")
-    
+    tm_fill(col = "black", border.lwd = 2)
+
+tmap_save(map, "map.png", width = 8, height = 6)
+
 ```
 Oh no! I was wondering if this would be the case. The radius that bees can travel (~1km) is too small to see at this scale (represented on my map as the black dot). In this case, I will just include a marker indicating study site and the radius for hover flies, and then write in a caption that hover flies carry pollen 100x farther than bumble bees. I want to add a nice simple basemap to this plot, to give more context to where things are. Still working on finding that file!
 I plan to add titles and annotations to this plot in Affinity, as I find it much easier to move things around and resize when they are made there in the first place. 
